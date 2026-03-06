@@ -7,7 +7,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from .config import FFprobeSettings
-from .models import MediaMetadata
+from .models import MediaMetadata, VideoStreamSummary
 
 
 class FFprobeError(RuntimeError):
@@ -56,6 +56,56 @@ def probe_media(
         camera_model=_pick_model(tags, settings.metadata_model_keys),
         camera_serial=_pick_value(tags, settings.metadata_serial_keys),
         raw_tags=tags,
+    )
+
+
+def probe_video_stream_summary(
+    source_path: str | Path,
+    settings: FFprobeSettings,
+) -> VideoStreamSummary:
+    resolved_path = Path(source_path).resolve()
+    command = [
+        settings.binary,
+        "-v",
+        "quiet",
+        "-print_format",
+        "json",
+        "-show_entries",
+        "stream=index,codec_type,width,height,avg_frame_rate",
+        str(resolved_path),
+    ]
+
+    try:
+        completed = subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            timeout=settings.timeout_seconds,
+            check=False,
+        )
+    except FileNotFoundError as exc:
+        raise FFprobeError(f"ffprobe binary not found: {settings.binary}") from exc
+    except subprocess.TimeoutExpired as exc:
+        raise FFprobeError(f"ffprobe timed out after {settings.timeout_seconds}s") from exc
+
+    if completed.returncode != 0:
+        raise FFprobeError(completed.stderr.strip() or "unknown ffprobe error")
+
+    payload = json.loads(completed.stdout or "{}")
+    video_stream: dict | None = None
+    has_audio = False
+    for stream in payload.get("streams", []) or []:
+        codec_type = stream.get("codec_type")
+        if codec_type == "video" and video_stream is None:
+            video_stream = stream
+        if codec_type == "audio":
+            has_audio = True
+
+    return VideoStreamSummary(
+        width=int(video_stream["width"]) if video_stream and video_stream.get("width") else None,
+        height=int(video_stream["height"]) if video_stream and video_stream.get("height") else None,
+        avg_frame_rate=str(video_stream["avg_frame_rate"]) if video_stream and video_stream.get("avg_frame_rate") else None,
+        has_audio=has_audio,
     )
 
 
@@ -151,4 +201,3 @@ def _parse_datetime(raw_value: str, local_timezone: ZoneInfo) -> datetime | None
     if parsed.tzinfo is None:
         return parsed.replace(tzinfo=local_timezone)
     return parsed.astimezone(local_timezone)
-

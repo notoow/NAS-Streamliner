@@ -13,9 +13,11 @@ class ManifestWriter:
         self._manifest_path.parent.mkdir(parents=True, exist_ok=True)
 
     def write(self, result: ClassificationResult) -> None:
-        payload = result.to_record()
-        payload["recorded_at"] = datetime.now().astimezone().isoformat()
-        with self._manifest_path.open("a", encoding="utf-8") as handle:
-            handle.write(json.dumps(payload, ensure_ascii=False))
-            handle.write("\n")
+        self.write_record(result.to_record())
 
+    def write_record(self, payload: dict[str, object]) -> None:
+        serializable_payload = dict(payload)
+        serializable_payload["recorded_at"] = datetime.now().astimezone().isoformat()
+        with self._manifest_path.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(serializable_payload, ensure_ascii=False))
+            handle.write("\n")

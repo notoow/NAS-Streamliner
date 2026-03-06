@@ -56,6 +56,25 @@ logging:
   level: INFO
   file_name: nas_streamliner.log
 
+encoder:
+  enabled: true
+  ffmpeg_binary: ffmpeg
+  timeout_seconds: 0
+  auto_encode_after_classification: true
+  proxy_subdir_name: Proxy
+  proxy_suffix: "__proxy_720p_cfr"
+  output_extension: .mp4
+  skip_if_source_not_newer: true
+  video_codec: libx264
+  video_preset: veryfast
+  video_crf: 23
+  pixel_format: yuv420p
+  max_width: 1280
+  max_height: 720
+  audio_codec: aac
+  audio_bitrate: 160k
+  movflags_faststart: true
+
 preflight:
   enabled: true
   create_missing_directories: true
@@ -66,4 +85,3 @@ preflight:
   verify_log_root_writable: true
   verify_state_root_writable: true
   write_probe_file_name: .nas-streamliner-write-test
-

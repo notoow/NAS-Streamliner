@@ -5,8 +5,10 @@ import time
 from pathlib import Path
 
 from ..config import Settings
+from ..ffprobe import FFprobeError
 from ..state_store import Observation, StateStore
 from .classifier import MediaClassifier
+from .encoder import ProxyEncoder, ProxyEncodeError
 
 
 class InboundWatcher:
@@ -15,6 +17,7 @@ class InboundWatcher:
         self.logger = logger or logging.getLogger("nas_streamliner")
         self.state_store = StateStore(settings.paths.state_db)
         self.classifier = MediaClassifier(settings=settings, logger=self.logger)
+        self.encoder = ProxyEncoder(settings=settings, logger=self.logger)
 
     def run_forever(self) -> None:
         self.logger.info("Watching inbound directory: %s", self.settings.paths.inbound_root)
@@ -76,4 +79,13 @@ class InboundWatcher:
             self.state_store.mark_quarantined(source_path, result.destination_path, result.reason)
         else:
             self.state_store.mark_completed(source_path, result.destination_path)
+            self._encode_proxy_if_enabled(result.destination_path)
 
+    def _encode_proxy_if_enabled(self, source_path: Path) -> None:
+        if not self.settings.encoder.enabled or not self.settings.encoder.auto_encode_after_classification:
+            return
+
+        try:
+            self.encoder.encode(source_path)
+        except (FFprobeError, ProxyEncodeError, OSError):
+            self.logger.exception("Failed to encode proxy for %s", source_path)

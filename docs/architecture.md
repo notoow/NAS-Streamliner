@@ -34,6 +34,8 @@ Storage/
     A-CAM/
       Original/
         20260306_184512_A-CAM_FX3_C0012.mp4
+      Proxy/
+        20260306_184512_A-CAM_FX3_C0012__proxy_720p_cfr.mp4
 ```
 
 If classification fails, the file moves to:
@@ -120,8 +122,11 @@ python watcher.py --config config/settings.yaml --validate-only
 
 - `watcher.py`: watcher CLI entry point
 - `classifier.py`: manual classification CLI entry point
+- `encoder.py`: manual proxy encode CLI entry point
+- `process_media.py`: classify + proxy encode CLI entry point
 - `src/nas_streamliner/services/watcher.py`: polling scan and stable file selection
 - `src/nas_streamliner/services/classifier.py`: metadata extraction, mapping, naming, and file move
+- `src/nas_streamliner/services/encoder.py`: proxy encode and proxy path allocation
 - `src/nas_streamliner/preflight.py`: NAS path and writability validation
 - `src/nas_streamliner/state_store.py`: SQLite tracking for observed files
 - `src/nas_streamliner/ffprobe.py`: `ffprobe` metadata extraction

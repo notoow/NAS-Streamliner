@@ -39,3 +39,30 @@ class ClassificationResult:
             "reason": self.reason,
         }
 
+
+@dataclass(frozen=True)
+class VideoStreamSummary:
+    width: int | None
+    height: int | None
+    avg_frame_rate: str | None
+    has_audio: bool
+
+
+@dataclass(frozen=True)
+class ProxyEncodeResult:
+    status: str
+    source_path: Path
+    destination_path: Path
+    width: int | None
+    height: int | None
+    avg_frame_rate: str | None
+
+    def to_record(self) -> dict[str, str | int | None]:
+        return {
+            "status": self.status,
+            "source_path": str(self.source_path),
+            "destination_path": str(self.destination_path),
+            "width": self.width,
+            "height": self.height,
+            "avg_frame_rate": self.avg_frame_rate,
+        }

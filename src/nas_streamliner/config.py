@@ -68,6 +68,27 @@ class LoggingSettings:
 
 
 @dataclass(frozen=True)
+class EncoderSettings:
+    enabled: bool
+    ffmpeg_binary: str
+    timeout_seconds: int
+    auto_encode_after_classification: bool
+    proxy_subdir_name: str
+    proxy_suffix: str
+    output_extension: str
+    skip_if_source_not_newer: bool
+    video_codec: str
+    video_preset: str
+    video_crf: int
+    pixel_format: str
+    max_width: int
+    max_height: int
+    audio_codec: str
+    audio_bitrate: str
+    movflags_faststart: bool
+
+
+@dataclass(frozen=True)
 class PreflightSettings:
     enabled: bool
     create_missing_directories: bool
@@ -89,6 +110,7 @@ class Settings:
     classification: ClassificationSettings
     naming: NamingSettings
     logging: LoggingSettings
+    encoder: EncoderSettings
     preflight: PreflightSettings
 
 
@@ -122,6 +144,7 @@ def load_settings(settings_path: str | Path) -> Settings:
             level=str(raw["logging"]["level"]),
             file_name=str(raw["logging"]["file_name"]),
         ),
+        encoder=_build_encoder_settings(raw.get("encoder", {})),
         preflight=_build_preflight_settings(raw.get("preflight", {})),
     )
     return settings
@@ -164,6 +187,48 @@ def _build_naming_settings(raw: dict) -> NamingSettings:
         original_basename_template=str(raw["original_basename_template"]),
         duplicate_suffix_template=str(raw["duplicate_suffix_template"]),
         maximum_stem_length=int(raw["maximum_stem_length"]),
+    )
+
+
+def _build_encoder_settings(raw: dict) -> EncoderSettings:
+    defaults = {
+        "enabled": True,
+        "ffmpeg_binary": "ffmpeg",
+        "timeout_seconds": 0,
+        "auto_encode_after_classification": True,
+        "proxy_subdir_name": "Proxy",
+        "proxy_suffix": "__proxy_720p_cfr",
+        "output_extension": ".mp4",
+        "skip_if_source_not_newer": True,
+        "video_codec": "libx264",
+        "video_preset": "veryfast",
+        "video_crf": 23,
+        "pixel_format": "yuv420p",
+        "max_width": 1280,
+        "max_height": 720,
+        "audio_codec": "aac",
+        "audio_bitrate": "160k",
+        "movflags_faststart": True,
+    }
+    merged = {**defaults, **raw}
+    return EncoderSettings(
+        enabled=bool(merged["enabled"]),
+        ffmpeg_binary=str(merged["ffmpeg_binary"]),
+        timeout_seconds=int(merged["timeout_seconds"]),
+        auto_encode_after_classification=bool(merged["auto_encode_after_classification"]),
+        proxy_subdir_name=str(merged["proxy_subdir_name"]),
+        proxy_suffix=str(merged["proxy_suffix"]),
+        output_extension=str(merged["output_extension"]),
+        skip_if_source_not_newer=bool(merged["skip_if_source_not_newer"]),
+        video_codec=str(merged["video_codec"]),
+        video_preset=str(merged["video_preset"]),
+        video_crf=int(merged["video_crf"]),
+        pixel_format=str(merged["pixel_format"]),
+        max_width=int(merged["max_width"]),
+        max_height=int(merged["max_height"]),
+        audio_codec=str(merged["audio_codec"]),
+        audio_bitrate=str(merged["audio_bitrate"]),
+        movflags_faststart=bool(merged["movflags_faststart"]),
     )
 
 
