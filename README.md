@@ -74,6 +74,8 @@ runtime/storage/2026-03-06/FX3-001/Original/20260306_184512_FX3-001_FX3_C0012.mp
 runtime/storage/2026-03-06/FX3-001/Proxy/20260306_184512_FX3-001_FX3_C0012__proxy_720p_cfr.mp4
 ```
 
+이미 프록시로 판단되는 입력 파일명은 `Original`이 아니라 `Proxy` 폴더로 바로 저장되고, 추가 프록시 인코딩은 생략됩니다.
+
 ## 실행
 
 ```powershell

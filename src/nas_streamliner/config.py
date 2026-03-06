@@ -48,6 +48,7 @@ class ClassificationSettings:
     quarantine_on_missing_date: bool
     quarantine_on_missing_camera: bool
     rename_original_files: bool
+    proxy_filename_patterns: tuple[str, ...]
 
     @property
     def timezone(self) -> ZoneInfo:
@@ -179,6 +180,7 @@ def _build_classification_settings(raw: dict) -> ClassificationSettings:
         quarantine_on_missing_date=bool(raw["quarantine_on_missing_date"]),
         quarantine_on_missing_camera=bool(raw["quarantine_on_missing_camera"]),
         rename_original_files=bool(raw["rename_original_files"]),
+        proxy_filename_patterns=tuple(str(item) for item in raw.get("proxy_filename_patterns", [])),
     )
 
 

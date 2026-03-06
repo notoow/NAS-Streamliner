@@ -79,7 +79,8 @@ class InboundWatcher:
             self.state_store.mark_quarantined(source_path, result.destination_path, result.reason)
         else:
             self.state_store.mark_completed(source_path, result.destination_path)
-            self._encode_proxy_if_enabled(result.destination_path)
+            if result.media_kind == "original":
+                self._encode_proxy_if_enabled(result.destination_path)
 
     def _encode_proxy_if_enabled(self, source_path: Path) -> None:
         if not self.settings.encoder.enabled or not self.settings.encoder.auto_encode_after_classification:

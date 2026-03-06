@@ -10,6 +10,7 @@ from ..config import Settings
 from ..ffprobe import FFprobeError, probe_media
 from ..filesystem import safe_move_file
 from ..manifest import ManifestWriter
+from ..media_kind import detect_media_kind
 from ..models import ClassificationResult, MediaMetadata
 from ..naming import allocate_destination_path, build_original_basename, sanitize_path_token
 
@@ -41,6 +42,10 @@ class MediaClassifier:
             )
 
         metadata = self._apply_datetime_fallback(metadata)
+        media_kind = detect_media_kind(
+            source_stem=resolved_path.stem,
+            proxy_filename_patterns=self.settings.classification.proxy_filename_patterns,
+        )
 
         camera_alias, matched_on = self.camera_resolver.resolve(metadata.camera_serial, metadata.camera_model)
         if camera_alias is None:
@@ -58,7 +63,8 @@ class MediaClassifier:
             if metadata.capture_datetime
             else self.settings.classification.unknown_date_folder
         )
-        destination_dir = self.settings.paths.storage_root / date_folder / camera_directory / "Original"
+        leaf_dir_name = self.settings.encoder.proxy_subdir_name if media_kind == "proxy" else "Original"
+        destination_dir = self.settings.paths.storage_root / date_folder / camera_directory / leaf_dir_name
         destination_path = allocate_destination_path(
             destination_dir=destination_dir,
             basename=self._build_storage_basename(metadata, camera_alias, resolved_path),
@@ -72,6 +78,7 @@ class MediaClassifier:
             source_path=resolved_path,
             destination_path=final_path,
             camera_alias=camera_alias,
+            media_kind=media_kind,
             camera_model=metadata.camera_model,
             camera_serial=metadata.camera_serial,
             capture_datetime=metadata.capture_datetime,
@@ -79,7 +86,7 @@ class MediaClassifier:
             reason=None,
         )
         self.manifest.write(result)
-        self.logger.info("Stored %s -> %s", resolved_path.name, final_path)
+        self.logger.info("Stored %s %s -> %s", media_kind, resolved_path.name, final_path)
         return result
 
     def _apply_datetime_fallback(self, metadata: MediaMetadata) -> MediaMetadata:
@@ -137,6 +144,7 @@ class MediaClassifier:
             source_path=source_path,
             destination_path=final_path,
             camera_alias=camera_alias,
+            media_kind="unknown",
             camera_model=metadata.camera_model,
             camera_serial=metadata.camera_serial,
             capture_datetime=metadata.capture_datetime,
@@ -156,4 +164,3 @@ def _empty_metadata(source_path: Path) -> MediaMetadata:
         camera_serial=None,
         raw_tags={},
     )
-

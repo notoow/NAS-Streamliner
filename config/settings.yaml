@@ -46,6 +46,9 @@ classification:
   quarantine_on_missing_date: false
   quarantine_on_missing_camera: false
   rename_original_files: true
+  proxy_filename_patterns:
+    - '(?i)(?:^|[_ -])proxy(?:$|[_ -])'
+    - '(?i)s03$'
 
 naming:
   original_basename_template: "{capture_date_compact}_{capture_time_compact}_{camera_alias}_{source_stem}"

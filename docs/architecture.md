@@ -90,6 +90,17 @@ Recommended rule:
 - Good: `FX3-001`, `FX3-002`, `IPHONE-001`
 - Avoid using editorial roles like `A-CAM`, `B-CAM` as the folder key
 
+## Proxy-like ingest
+
+If an inbound filename already looks like a proxy, the classifier stores it directly under `Proxy` and does not create another proxy.
+
+Default detection patterns:
+
+- names containing `Proxy`
+- Sony-style names ending with `S03`
+
+This prevents double-encoding when a camera-generated or externally generated proxy is ingested.
+
 ## NAS path model
 
 The project now supports environment-variable path overrides in `settings.yaml`.

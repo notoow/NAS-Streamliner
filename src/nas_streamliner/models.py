@@ -20,6 +20,7 @@ class ClassificationResult:
     source_path: Path
     destination_path: Path
     camera_alias: str
+    media_kind: str
     camera_model: str | None
     camera_serial: str | None
     capture_datetime: datetime | None
@@ -32,6 +33,7 @@ class ClassificationResult:
             "source_path": str(self.source_path),
             "destination_path": str(self.destination_path),
             "camera_alias": self.camera_alias,
+            "media_kind": self.media_kind,
             "camera_model": self.camera_model,
             "camera_serial": self.camera_serial,
             "capture_datetime": self.capture_datetime.isoformat() if self.capture_datetime else None,

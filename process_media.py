@@ -41,12 +41,18 @@ def main() -> int:
     for raw_path in args.paths:
         classification_result = classifier.classify(raw_path)
         logger.info(
-            "Classified: %s -> %s (%s)",
+            "Classified: %s -> %s (%s, %s)",
             classification_result.source_path,
             classification_result.destination_path,
             classification_result.status,
+            classification_result.media_kind,
         )
-        if classification_result.status != "stored" or args.skip_encode or not settings.encoder.enabled:
+        if (
+            classification_result.status != "stored"
+            or classification_result.media_kind != "original"
+            or args.skip_encode
+            or not settings.encoder.enabled
+        ):
             continue
 
         proxy_result = encoder.encode(classification_result.destination_path)
