@@ -23,6 +23,7 @@ def configure_logging(logging_settings: LoggingSettings, path_settings: PathSett
     stream_handler.setFormatter(formatter)
     logger.addHandler(stream_handler)
 
+    path_settings.log_root.mkdir(parents=True, exist_ok=True)
     file_handler = RotatingFileHandler(
         path_settings.log_root / logging_settings.file_name,
         maxBytes=1_000_000,
@@ -32,4 +33,3 @@ def configure_logging(logging_settings: LoggingSettings, path_settings: PathSett
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
     return logger
-

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -66,6 +68,19 @@ class LoggingSettings:
 
 
 @dataclass(frozen=True)
+class PreflightSettings:
+    enabled: bool
+    create_missing_directories: bool
+    verify_camera_map_exists: bool
+    verify_inbound_exists: bool
+    verify_storage_writable: bool
+    verify_quarantine_writable: bool
+    verify_log_root_writable: bool
+    verify_state_root_writable: bool
+    write_probe_file_name: str
+
+
+@dataclass(frozen=True)
 class Settings:
     project_name: str
     paths: PathSettings
@@ -74,6 +89,10 @@ class Settings:
     classification: ClassificationSettings
     naming: NamingSettings
     logging: LoggingSettings
+    preflight: PreflightSettings
+
+
+ENV_PATTERN = re.compile(r"\$\{(?P<name>[A-Za-z_][A-Za-z0-9_]*)(?::-(?P<default>[^}]*))?\}")
 
 
 def load_settings(settings_path: str | Path) -> Settings:
@@ -103,22 +122,9 @@ def load_settings(settings_path: str | Path) -> Settings:
             level=str(raw["logging"]["level"]),
             file_name=str(raw["logging"]["file_name"]),
         ),
+        preflight=_build_preflight_settings(raw.get("preflight", {})),
     )
-    ensure_runtime_directories(settings)
     return settings
-
-
-def ensure_runtime_directories(settings: Settings) -> None:
-    roots = (
-        settings.paths.inbound_root,
-        settings.paths.storage_root,
-        settings.paths.quarantine_root,
-        settings.paths.log_root,
-        settings.paths.state_db.parent,
-        settings.paths.manifest_path.parent,
-    )
-    for root in roots:
-        root.mkdir(parents=True, exist_ok=True)
 
 
 def _build_watcher_settings(raw: dict) -> WatcherSettings:
@@ -161,9 +167,49 @@ def _build_naming_settings(raw: dict) -> NamingSettings:
     )
 
 
+def _build_preflight_settings(raw: dict) -> PreflightSettings:
+    defaults = {
+        "enabled": True,
+        "create_missing_directories": True,
+        "verify_camera_map_exists": True,
+        "verify_inbound_exists": True,
+        "verify_storage_writable": True,
+        "verify_quarantine_writable": True,
+        "verify_log_root_writable": True,
+        "verify_state_root_writable": True,
+        "write_probe_file_name": ".nas-streamliner-write-test",
+    }
+    merged = {**defaults, **raw}
+    return PreflightSettings(
+        enabled=bool(merged["enabled"]),
+        create_missing_directories=bool(merged["create_missing_directories"]),
+        verify_camera_map_exists=bool(merged["verify_camera_map_exists"]),
+        verify_inbound_exists=bool(merged["verify_inbound_exists"]),
+        verify_storage_writable=bool(merged["verify_storage_writable"]),
+        verify_quarantine_writable=bool(merged["verify_quarantine_writable"]),
+        verify_log_root_writable=bool(merged["verify_log_root_writable"]),
+        verify_state_root_writable=bool(merged["verify_state_root_writable"]),
+        write_probe_file_name=str(merged["write_probe_file_name"]),
+    )
+
+
 def _resolve_path(base_dir: Path, raw_path: str) -> Path:
-    path = Path(raw_path)
+    expanded = _expand_env_placeholders(str(raw_path))
+    path = Path(os.path.expanduser(expanded))
     if not path.is_absolute():
         path = (base_dir / path).resolve()
     return path
 
+
+def _expand_env_placeholders(raw_value: str) -> str:
+    def replace(match: re.Match[str]) -> str:
+        name = match.group("name")
+        default = match.group("default")
+        value = os.environ.get(name)
+        if value not in (None, ""):
+            return value
+        if default is not None:
+            return default
+        raise ValueError(f"Environment variable '{name}' is not set for path value '{raw_value}'")
+
+    return ENV_PATTERN.sub(replace, raw_value)

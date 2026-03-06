@@ -2,13 +2,13 @@ project_name: NAS-Streamliner
 
 paths:
   project_root: ..
-  inbound_root: ${NAS_STREAMLINER_INBOUND_ROOT:-../runtime/inbound}
-  storage_root: ${NAS_STREAMLINER_STORAGE_ROOT:-../runtime/storage}
-  quarantine_root: ${NAS_STREAMLINER_QUARANTINE_ROOT:-../runtime/quarantine}
-  log_root: ${NAS_STREAMLINER_LOG_ROOT:-../runtime/logs}
-  state_db: ${NAS_STREAMLINER_STATE_DB:-../runtime/state/nas_streamliner.db}
-  manifest_path: ${NAS_STREAMLINER_MANIFEST_PATH:-../runtime/state/manifest.jsonl}
-  camera_map_path: ${NAS_STREAMLINER_CAMERA_MAP_PATH:-./cam_map.yaml}
+  inbound_root: "\\\\172.30.1.210\\video_ingest\\Inbound"
+  storage_root: "\\\\172.30.1.210\\video_archive\\Storage"
+  quarantine_root: "\\\\172.30.1.210\\video_archive\\Quarantine"
+  log_root: ../runtime/logs
+  state_db: ../runtime/state/nas_streamliner.db
+  manifest_path: ../runtime/state/manifest.jsonl
+  camera_map_path: ./cam_map.yaml
 
 watcher:
   scan_interval_seconds: 5
@@ -66,4 +66,3 @@ preflight:
   verify_log_root_writable: true
   verify_state_root_writable: true
   write_probe_file_name: .nas-streamliner-write-test
-

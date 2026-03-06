@@ -1,120 +1,129 @@
 # NAS-Streamliner Architecture
 
-## 1. 운영 기준
+## Operating model
 
-- 워처와 분류기는 동일한 호스트에서 실행한다.
-- 모든 경로 설정의 진입점은 `config/settings.yaml`이다.
-- `cam_map.yaml` 경로도 `settings.yaml` 안에서 참조한다.
-- 워처는 이벤트 기반이 아니라 polling 기반으로 동작한다.
-- 파일은 "최소 2회 연속 동일 크기/mtime 관찰" + "최소 age 경과" 조건을 만족할 때만 처리한다.
+- The watcher and classifier run on one host.
+- The NAS storage destination can be a local path, mapped drive, or UNC path.
+- `config/settings.yaml` is the single entry point for all runtime paths.
+- The camera map file is referenced from `settings.yaml`.
+- File readiness is determined by polling, not by filesystem events.
+- A file is processed only after repeated scans show the same size and mtime.
 
-## 2. 런타임 폴더
-
-```text
-runtime/
-├─ inbound/        # 업로드 진입 폴더
-├─ storage/        # 최종 보관 경로
-├─ quarantine/     # 실패/미확정 파일 격리
-├─ logs/           # 애플리케이션 로그
-└─ state/          # sqlite 상태, manifest
-```
-
-## 3. 저장 경로 규칙
-
-최종 원본 저장 경로:
+## Runtime roots
 
 ```text
-Storage/YYYY-MM-DD/<CameraAlias>/Original/<StandardizedFileName>
+Inbound      Incoming uploads, usually from FTP or a synced share
+Storage      Final archive path on the NAS
+Quarantine   Files that cannot be safely classified
+Logs         Local application logs
+State        Local SQLite state and manifest JSONL
 ```
 
-예시:
+Recommended split:
+
+- `Inbound`, `Logs`, `State`: local or always-mounted path
+- `Storage`, `Quarantine`: NAS path
+
+This avoids losing logs or state if the NAS share is temporarily unavailable.
+
+## Final storage layout
 
 ```text
-runtime/storage/2026-03-06/A-CAM/Original/20260306_184512_A-CAM_FX3_C0012.mp4
+Storage/
+  YYYY-MM-DD/
+    A-CAM/
+      Original/
+        20260306_184512_A-CAM_FX3_C0012.mp4
 ```
 
-격리 경로:
+If classification fails, the file moves to:
 
 ```text
-Quarantine/YYYY-MM-DD/<reason>/<filename>
+Quarantine/
+  YYYY-MM-DD/
+    ffprobe-failed/
+      20260306_184700_ffprobe-failed_clip-001.mov
 ```
 
-예시:
+## File naming policy
+
+Original media is standardized as:
 
 ```text
-runtime/quarantine/2026-03-06/ffprobe-failed/20260306_184700_ffprobe-failed_clip-001.mov
+YYYYMMDD_HHMMSS_<CAMERA_ALIAS>_<SANITIZED_SOURCE_STEM>.<ext>
 ```
 
-## 4. 파일명 정책
-
-원본 표준 파일명:
+Examples:
 
 ```text
-{capture_date_compact}_{capture_time_compact}_{camera_alias}_{source_stem}{ext}
+20260306_184512_A-CAM_FX3_C0012.mp4
+20260306_184512_A-CAM_FX3_C0012__v02.mp4
 ```
 
-필드 정의:
+Rules:
 
-- `capture_date_compact`: `YYYYMMDD`
-- `capture_time_compact`: `HHMMSS`
-- `camera_alias`: `cam_map.yaml`에서 해석된 별칭, 예: `A-CAM`
-- `source_stem`: 원본 파일명 stem을 경로 안전 문자로 정규화한 값
+- Invalid path characters are replaced with `_`
+- Repeated separators are collapsed
+- Duplicate files get `__v02`, `__v03`, and so on
+- Unknown capture dates fall back to `unknown-date_<CAMERA_ALIAS>_<SOURCE_STEM>`
 
-중복 처리:
+## Metadata priority
+
+Capture date:
+
+1. `creation_time`
+2. Apple QuickTime creation date tags
+3. File modified time if enabled
+4. Quarantine or `unknown_date_folder`
+
+Camera alias:
+
+1. Serial number match
+2. Model match
+3. `unknown_camera_alias`
+
+## NAS path model
+
+The project now supports environment-variable path overrides in `settings.yaml`.
+
+Example:
 
 ```text
-__v02, __v03, ...
+${NAS_STREAMLINER_STORAGE_ROOT:-../runtime/storage}
 ```
 
-## 5. 카메라 매핑 우선순위
+That means:
 
-1. `serials` 정확 매칭
-2. `models` 정확 매칭
-3. 설정의 `unknown_camera_alias`
+- Use `NAS_STREAMLINER_STORAGE_ROOT` if it is set
+- Otherwise use `../runtime/storage`
 
-같은 모델 바디가 여러 대라면 반드시 시리얼을 넣어야 한다.
+This is useful when the same repository must run in local development and on a NAS-attached workstation.
 
-## 6. 날짜 결정 우선순위
+## Preflight validation
 
-1. `ffprobe` 메타데이터의 `creation_time`
-2. Apple QuickTime 계열 creation date 태그
-3. `settings.yaml`이 허용하면 파일 수정 시간(`mtime`)
-4. 위 모두 실패 시 `unknown_date_folder` 또는 Quarantine
+Before the watcher or classifier runs, preflight validation checks:
 
-시간대는 `classification.timezone` 기준으로 정규화한다.
+- camera map file exists
+- inbound directory exists
+- storage directory is writable
+- quarantine directory is writable
+- log directory is writable
+- state directory is writable
 
-## 7. 장애 처리
+Validation can be run without starting the watcher:
 
-- `ffprobe` 실패: `ffprobe-failed` 사유로 Quarantine
-- 날짜 미확정: 설정에 따라 Quarantine 또는 `unknown_date_folder`
-- 카메라 미확정: 설정에 따라 Quarantine 또는 `unknown_camera_alias`
-- 이동 실패: 예외 로그 남기고 state를 `failed`로 남긴다
+```powershell
+python watcher.py --config config/settings.yaml --validate-only
+```
 
-## 8. 상태 저장
+## Module responsibilities
 
-`runtime/state/nas_streamliner.db`
-
-저장 항목:
-
-- source path
-- file size
-- file mtime
-- first seen / last seen
-- stable since
-- processing status
-- destination path
-- notes
-
-이 구조 덕분에 재시작 이후에도 안정 판정과 중복 처리가 이어진다.
-
-## 9. 모듈 책임
-
-- `watcher.py`: CLI 진입점
-- `classifier.py`: 단일 파일 수동 분류 CLI
-- `src/nas_streamliner/services/watcher.py`: polling 스캔, 안정 파일 판정, 분류 호출
-- `src/nas_streamliner/services/classifier.py`: probe, camera resolution, naming, safe move, manifest 기록
-- `src/nas_streamliner/state_store.py`: SQLite 상태 저장소
-- `src/nas_streamliner/ffprobe.py`: 메타데이터 추출
-- `src/nas_streamliner/naming.py`: 파일명 및 중복 suffix 정책
-- `src/nas_streamliner/filesystem.py`: 원자적 rename 우선, 불가 시 copy-verify-replace
-
+- `watcher.py`: watcher CLI entry point
+- `classifier.py`: manual classification CLI entry point
+- `src/nas_streamliner/services/watcher.py`: polling scan and stable file selection
+- `src/nas_streamliner/services/classifier.py`: metadata extraction, mapping, naming, and file move
+- `src/nas_streamliner/preflight.py`: NAS path and writability validation
+- `src/nas_streamliner/state_store.py`: SQLite tracking for observed files
+- `src/nas_streamliner/ffprobe.py`: `ffprobe` metadata extraction
+- `src/nas_streamliner/naming.py`: standardized filename allocation and duplicate policy
+- `src/nas_streamliner/filesystem.py`: same-volume move or copy-verify-replace for cross-volume destinations
