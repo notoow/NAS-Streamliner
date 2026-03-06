@@ -31,11 +31,11 @@ This avoids losing logs or state if the NAS share is temporarily unavailable.
 ```text
 Storage/
   YYYY-MM-DD/
-    A-CAM/
+    FX3-001/
       Original/
-        20260306_184512_A-CAM_FX3_C0012.mp4
+        20260306_184512_FX3-001_FX3_C0012.mp4
       Proxy/
-        20260306_184512_A-CAM_FX3_C0012__proxy_720p_cfr.mp4
+        20260306_184512_FX3-001_FX3_C0012__proxy_720p_cfr.mp4
 ```
 
 If classification fails, the file moves to:
@@ -52,14 +52,14 @@ Quarantine/
 Original media is standardized as:
 
 ```text
-YYYYMMDD_HHMMSS_<CAMERA_ALIAS>_<SANITIZED_SOURCE_STEM>.<ext>
+YYYYMMDD_HHMMSS_<BODY_ID>_<SANITIZED_SOURCE_STEM>.<ext>
 ```
 
 Examples:
 
 ```text
-20260306_184512_A-CAM_FX3_C0012.mp4
-20260306_184512_A-CAM_FX3_C0012__v02.mp4
+20260306_184512_FX3-001_FX3_C0012.mp4
+20260306_184512_FX3-001_FX3_C0012__v02.mp4
 ```
 
 Rules:
@@ -67,7 +67,7 @@ Rules:
 - Invalid path characters are replaced with `_`
 - Repeated separators are collapsed
 - Duplicate files get `__v02`, `__v03`, and so on
-- Unknown capture dates fall back to `unknown-date_<CAMERA_ALIAS>_<SOURCE_STEM>`
+- Unknown capture dates fall back to `unknown-date_<BODY_ID>_<SOURCE_STEM>`
 
 ## Metadata priority
 
@@ -78,11 +78,17 @@ Capture date:
 3. File modified time if enabled
 4. Quarantine or `unknown_date_folder`
 
-Camera alias:
+Camera folder / body ID:
 
 1. Serial number match
 2. Model match
 3. `unknown_camera_alias`
+
+Recommended rule:
+
+- Treat `alias` in `cam_map.yaml` as a stable physical body ID
+- Good: `FX3-001`, `FX3-002`, `IPHONE-001`
+- Avoid using editorial roles like `A-CAM`, `B-CAM` as the folder key
 
 ## NAS path model
 
