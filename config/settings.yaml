@@ -1,0 +1,58 @@
+project_name: NAS-Streamliner
+
+paths:
+  project_root: ..
+  inbound_root: ../runtime/inbound
+  storage_root: ../runtime/storage
+  quarantine_root: ../runtime/quarantine
+  log_root: ../runtime/logs
+  state_db: ../runtime/state/nas_streamliner.db
+  manifest_path: ../runtime/state/manifest.jsonl
+  camera_map_path: ./cam_map.yaml
+
+watcher:
+  scan_interval_seconds: 5
+  stable_window_seconds: 20
+  minimum_file_age_seconds: 10
+  accepted_extensions:
+    - .mp4
+    - .mov
+    - .mxf
+    - .m4v
+    - .avi
+  ignore_hidden_files: true
+
+ffprobe:
+  binary: ffprobe
+  timeout_seconds: 20
+  metadata_date_keys:
+    - creation_time
+    - com.apple.quicktime.creationdate
+    - date
+  metadata_model_keys:
+    - model
+    - com.apple.quicktime.model
+    - device_model
+  metadata_serial_keys:
+    - serial_number
+    - com.apple.quicktime.serialno
+    - reel_name
+
+classification:
+  timezone: Asia/Seoul
+  unknown_camera_alias: Z-CAM-UNKNOWN
+  unknown_date_folder: 1970-01-01
+  fallback_to_file_modified_time: true
+  quarantine_on_missing_date: false
+  quarantine_on_missing_camera: false
+  rename_original_files: true
+
+naming:
+  original_basename_template: "{capture_date_compact}_{capture_time_compact}_{camera_alias}_{source_stem}"
+  duplicate_suffix_template: "__v{index:02d}"
+  maximum_stem_length: 48
+
+logging:
+  level: INFO
+  file_name: nas_streamliner.log
+

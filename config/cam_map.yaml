@@ -1,0 +1,22 @@
+cameras:
+  - alias: A-CAM
+    serials:
+      - FX3-PRIMARY-001
+    models:
+      - ILME-FX3
+      - SONY FX3
+
+  - alias: B-CAM
+    serials:
+      - IPHONE-15-PRO-002
+    models:
+      - iPhone 15 Pro
+      - Apple iPhone 15 Pro
+
+  - alias: C-CAM
+    serials:
+      - GOPRO-HERO12-003
+    models:
+      - HERO12 Black
+      - GoPro HERO12 Black
+

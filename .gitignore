@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+
+runtime/logs/*.log
+runtime/state/*.db
+runtime/state/*.jsonl
+
+runtime/inbound/*
+!runtime/inbound/.gitkeep
+runtime/storage/*
+!runtime/storage/.gitkeep
+runtime/quarantine/*
+!runtime/quarantine/.gitkeep
+
