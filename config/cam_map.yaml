@@ -5,6 +5,8 @@ cameras:
     models:
       - ILME-FX3
       - SONY FX3
+    filename_hints:
+      - (?i)^C\\d{4}
 
   - alias: FX3-002
     serials:
@@ -12,6 +14,7 @@ cameras:
     models:
       - ILME-FX3
       - SONY FX3
+    filename_hints: []
 
   - alias: IPHONE-001
     serials:
@@ -19,6 +22,8 @@ cameras:
     models:
       - iPhone 15 Pro
       - Apple iPhone 15 Pro
+    filename_hints:
+      - (?i)^IMG_
 
   - alias: GOPRO-001
     serials:
@@ -26,3 +31,11 @@ cameras:
     models:
       - HERO12 Black
       - GoPro HERO12 Black
+    filename_hints:
+      - (?i)^GX
+
+  - alias: DJI-001
+    serials: []
+    models: []
+    filename_hints:
+      - (?i)^DJI_

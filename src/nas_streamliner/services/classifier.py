@@ -47,7 +47,11 @@ class MediaClassifier:
             proxy_filename_patterns=self.settings.classification.proxy_filename_patterns,
         )
 
-        camera_alias, matched_on = self.camera_resolver.resolve(metadata.camera_serial, metadata.camera_model)
+        camera_alias, matched_on = self.camera_resolver.resolve(
+            metadata.camera_serial,
+            metadata.camera_model,
+            source_stem=resolved_path.stem,
+        )
         if camera_alias is None:
             camera_alias = self.settings.classification.unknown_camera_alias
 

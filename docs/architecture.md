@@ -82,7 +82,8 @@ Camera folder / body ID:
 
 1. Serial number match
 2. Model match
-3. `unknown_camera_alias`
+3. Filename hint match
+4. `unknown_camera_alias`
 
 Recommended rule:
 

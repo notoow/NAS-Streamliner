@@ -12,13 +12,14 @@ class CameraRule:
     alias: str
     serials: tuple[str, ...]
     models: tuple[str, ...]
+    filename_hints: tuple[str, ...]
 
 
 class CameraResolver:
     def __init__(self, rules: list[CameraRule]) -> None:
         self._rules = rules
 
-    def resolve(self, serial: str | None, model: str | None) -> tuple[str | None, str]:
+    def resolve(self, serial: str | None, model: str | None, source_stem: str | None = None) -> tuple[str | None, str]:
         normalized_serial = _normalize_lookup_value(serial)
         if normalized_serial:
             for rule in self._rules:
@@ -30,6 +31,12 @@ class CameraResolver:
             for rule in self._rules:
                 if normalized_model in {_normalize_lookup_value(item) for item in rule.models}:
                     return rule.alias, "model"
+
+        if source_stem:
+            for rule in self._rules:
+                for hint in rule.filename_hints:
+                    if re.search(hint, source_stem):
+                        return rule.alias, "filename_hint"
 
         return None, "default"
 
@@ -46,6 +53,7 @@ def load_camera_resolver(camera_map_path: str | Path) -> CameraResolver:
                 alias=str(item["alias"]),
                 serials=tuple(str(value) for value in item.get("serials", [])),
                 models=tuple(str(value) for value in item.get("models", [])),
+                filename_hints=tuple(str(value) for value in item.get("filename_hints", [])),
             )
         )
     return CameraResolver(rules)
@@ -55,4 +63,3 @@ def _normalize_lookup_value(value: str | None) -> str:
     if not value:
         return ""
     return re.sub(r"[^0-9A-Za-z]+", "", value.casefold())
-
