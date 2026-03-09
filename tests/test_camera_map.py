@@ -82,6 +82,43 @@ class CameraMapTests(unittest.TestCase):
             self.assertEqual(alias, "DJI-001")
             self.assertEqual(matched_on, "filename_hint")
 
+    def test_camera_resolver_avoids_ambiguous_model_assignment(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            camera_map_path = Path(temp_dir) / "cam_map.yaml"
+            camera_map_path.write_text(
+                "\n".join(
+                    [
+                        "cameras:",
+                        "  - alias: FX3-001",
+                        "    serials: []",
+                        "    models: [ILME-FX3]",
+                        "    filename_hints: ['(?i)^A001_']",
+                        "  - alias: FX3-002",
+                        "    serials: []",
+                        "    models: [ILME-FX3]",
+                        "    filename_hints: ['(?i)^B001_']",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            resolver = load_camera_resolver(camera_map_path)
+
+            alias, matched_on = resolver.resolve(
+                serial=None,
+                model="ILME-FX3",
+                source_stem="B001_C0001",
+            )
+            self.assertEqual(alias, "FX3-002")
+            self.assertEqual(matched_on, "filename_hint")
+
+            alias_without_hint, matched_on_without_hint = resolver.resolve(
+                serial=None,
+                model="ILME-FX3",
+                source_stem="C0001",
+            )
+            self.assertIsNone(alias_without_hint)
+            self.assertEqual(matched_on_without_hint, "model_ambiguous")
+
 
 if __name__ == "__main__":
     unittest.main()

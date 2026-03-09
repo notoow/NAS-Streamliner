@@ -85,6 +85,8 @@ Camera folder / body ID:
 3. Filename hint match
 4. `unknown_camera_alias`
 
+If a model matches multiple body IDs (for example multiple FX3 units), model-only resolution is treated as ambiguous and will not pick one body arbitrarily.
+
 Recommended rule:
 
 - Treat `alias` in `cam_map.yaml` as a stable physical body ID

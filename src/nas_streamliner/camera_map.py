@@ -22,15 +22,27 @@ class CameraResolver:
     def resolve(self, serial: str | None, model: str | None, source_stem: str | None = None) -> tuple[str | None, str]:
         normalized_serial = _normalize_lookup_value(serial)
         if normalized_serial:
-            for rule in self._rules:
-                if normalized_serial in {_normalize_lookup_value(item) for item in rule.serials}:
-                    return rule.alias, "serial"
+            serial_matches = self._find_matching_aliases(
+                normalized_lookup_value=normalized_serial,
+                rule_values_getter=lambda rule: rule.serials,
+            )
+            if len(serial_matches) == 1:
+                return serial_matches[0], "serial"
+            if len(serial_matches) > 1:
+                return None, "serial_ambiguous"
 
         normalized_model = _normalize_lookup_value(model)
         if normalized_model:
-            for rule in self._rules:
-                if normalized_model in {_normalize_lookup_value(item) for item in rule.models}:
-                    return rule.alias, "model"
+            model_matches = self._find_matching_aliases(
+                normalized_lookup_value=normalized_model,
+                rule_values_getter=lambda rule: rule.models,
+            )
+            if len(model_matches) == 1:
+                return model_matches[0], "model"
+            if len(model_matches) > 1:
+                # Multiple bodies can share one model (for example several FX3 units).
+                # In that case we avoid a wrong body assignment and continue to filename hints.
+                model = None
 
         if source_stem:
             for rule in self._rules:
@@ -38,7 +50,21 @@ class CameraResolver:
                     if re.search(hint, source_stem):
                         return rule.alias, "filename_hint"
 
+        if model is None and normalized_model:
+            return None, "model_ambiguous"
         return None, "default"
+
+    def _find_matching_aliases(
+        self,
+        normalized_lookup_value: str,
+        rule_values_getter,
+    ) -> list[str]:
+        matches: list[str] = []
+        for rule in self._rules:
+            normalized_values = {_normalize_lookup_value(item) for item in rule_values_getter(rule)}
+            if normalized_lookup_value in normalized_values:
+                matches.append(rule.alias)
+        return matches
 
 
 def load_camera_resolver(camera_map_path: str | Path) -> CameraResolver:
